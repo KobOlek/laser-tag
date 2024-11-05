@@ -3,8 +3,7 @@ import cv2
 import numpy as np
 from util import get_limits
 import mouse
-from screeninfo import get_monitors
-import time, pyautogui
+import pyautogui
 from picamera2 import Picamera2
 
 # Connecting to Pi's camera
