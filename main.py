@@ -4,18 +4,13 @@ import cv2, pyautogui, mouse, threading
 import numpy as np
 from picamera2 import Picamera2
 from screeninfo import get_monitors
+from util import get_limits
 # Constants for screen size and camera configuration
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
 CAMERA = Picamera2()
 CONFIG = CAMERA.create_preview_configuration({'format': 'RGB888'})
 CAMERA.configure(CONFIG)
 CAMERA.start()
-
-# Calibration helper function: Get color limits
-def get_color_limits(color):
-    """Returns the lower and upper bounds for a color in HSV space."""
-    # Inverted RGB to HSV using OpenCV range adjustments
-    return np.array([color[2], 50, 50]), np.array([color[0], 255, 255])
 
 # Function to get the largest location of the given color in the frame
 def get_color_location(frame, lower_color, upper_color):
@@ -27,9 +22,9 @@ def get_color_location(frame, lower_color, upper_color):
 
 # Set color limits (in BGR format, reversed to RGB for correct conversion to HSV)
 LOWER_LASER, UPPER_LASER = np.array([0, 0, 255]), np.array([255, 255, 255])
-LOWER_RED, UPPER_RED = get_color_limits([255, 0, 0])
-LOWER_BLUE, UPPER_BLUE = get_color_limits([0, 0, 255])
-LOWER_GREEN, UPPER_GREEN = get_color_limits([0, 255, 0])
+LOWER_RED, UPPER_RED = get_limits([255, 0, 0][::-1])
+LOWER_BLUE, UPPER_BLUE = get_limits([0, 0, 255][::-1])
+LOWER_GREEN, UPPER_GREEN = get_limits([0, 255, 0][::-1])
 
 # Calibration variables
 field_width, field_height = 0, 0  # Will be calculated dynamically during video capture
