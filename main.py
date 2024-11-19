@@ -1,81 +1,100 @@
+#!/usr/bin/env python3
 # imports
-import cv2
+import cv2, pyautogui, mouse, threading
 import numpy as np
-from util import get_limits
-import mouse
-import pyautogui
 from picamera2 import Picamera2
+from screeninfo import get_monitors
+# Constants for screen size and camera configuration
+SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
+CAMERA = Picamera2()
+CONFIG = CAMERA.create_preview_configuration({'format': 'RGB888'})
+CAMERA.configure(CONFIG)
+CAMERA.start()
 
-# Connecting to Pi's camera
-camera = Picamera2()
-config = camera.create_preview_configuration({'format': 'RGB888'})
-camera.configure(config)
-camera.start()
+# Calibration helper function: Get color limits
+def get_color_limits(color):
+    """Returns the lower and upper bounds for a color in HSV space."""
+    # Inverted RGB to HSV using OpenCV range adjustments
+    return np.array([color[2], 50, 50]), np.array([color[0], 255, 255])
 
-# Get colors
-def get_color(lower_color: np.array, upper_color: np.array):
-    mask = cv2.inRange(hsv, lower_color, upper_color)
-    (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(mask)
-    return maxLoc
+# Function to get the largest location of the given color in the frame
+def get_color_location(frame, lower_color, upper_color):
+    """Detects the largest area of a specified color and returns its coordinates."""
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_frame, lower_color, upper_color)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(mask)
+    return max_loc
 
+# Set color limits (in BGR format, reversed to RGB for correct conversion to HSV)
+LOWER_LASER, UPPER_LASER = np.array([0, 0, 255]), np.array([255, 255, 255])
+LOWER_RED, UPPER_RED = get_color_limits([255, 0, 0])
+LOWER_BLUE, UPPER_BLUE = get_color_limits([0, 0, 255])
+LOWER_GREEN, UPPER_GREEN = get_color_limits([0, 255, 0])
 
-# Color limits used for detection
-lower_laser = np.array([0, 0, 255])
-upper_laser = np.array([255, 255, 255])
+# Calibration variables
+field_width, field_height = 0, 0  # Will be calculated dynamically during video capture
 
-lower_red, upper_red = get_limits([200,0,0][::-1])
+def calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc):
+    """Calibrate and move the cursor based on color locations."""
+    global field_width, field_height
+    
+    # Calibration: calculate field dimensions
+    field_width = max_green_loc[0] - max_blue_loc[0]
+    field_height = max_blue_loc[1] - max_red_loc[1]
 
-lower_blue, upper_blue = get_limits([0,0,255][::-1])
-
-lower_green, upper_green = get_limits([0,255,0][::-1])
-
-
-# Calibration: screen size
-screen_width, screen_height = pyautogui.size()[0], pyautogui.size()[1]
-# Video capturing
-while True:
-    frame = camera.capture_array()
-    if frame is None:
-        break
-
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-    # Color locations, getting coordinates of the largest accumulation of color
-    maxLaserLoc = get_color(lower_laser, upper_laser)
-    cv2.circle(frame, maxLaserLoc, 20, (255, 255, 255), 2, cv2.LINE_AA)
-
-    maxRedLoc = get_color(lower_red, upper_red)
-    cv2.circle(frame, maxRedLoc, 20, (0, 0, 255), 2, cv2.LINE_AA)
-
-    maxBlueLoc = get_color(lower_blue, upper_blue)
-    cv2.circle(frame, maxBlueLoc, 20, (255, 0, 0), 2, cv2.LINE_AA)
-
-    maxGreenLoc = get_color(lower_green, upper_green)
-    cv2.circle(frame, maxGreenLoc, 20, (0, 255, 0), 2, cv2.LINE_AA)
-
-
-    # Calibration: projecting image size
-    field_width = maxGreenLoc[0] - maxBlueLoc[0]
-    field_height = maxBlueLoc[1] - maxRedLoc[1]
-
-    # Calibration: cursor positioning
+    # Only move cursor if field dimensions are valid (positive values)
     if field_width > 0 and field_height > 0:
-        width_k = screen_width / field_width
-        height_k = screen_height / field_height
+        width_k = SCREEN_WIDTH / field_width
+        height_k = SCREEN_HEIGHT / field_height
 
-        red_x = maxLaserLoc[0] - maxRedLoc[0]
-        red_y = maxLaserLoc[1] - maxRedLoc[1]
+        # Calculate the relative position of the laser in the red region
+        red_x = max_laser_loc[0] - max_red_loc[0]
+        red_y = max_laser_loc[1] - max_red_loc[1]
+
+        # If laser is within the bounds, calculate and move the cursor
         if red_x >= 0 and red_y >= 0:
-            cursor_x = (red_x) * width_k
-            cursor_y = (red_y) * height_k
+            cursor_x = red_x * width_k
+            cursor_y = red_y * height_k
             mouse.move(int(cursor_x), int(cursor_y))
 
-    # Camera frame showing
-    cv2.imshow('Track Laser', frame)
+# Main loop to capture and process video frames
+def main():
+    """Main function to capture frames and track laser pointer."""
+    while True:
+        # Capture frame from the camera
+        frame = CAMERA.capture_array()
+        if frame is None:
+            print("Failed to capture frame, exiting...")
+            break
 
+        # Get the locations of different colors (laser, red, blue, green)
+        max_laser_loc = get_color_location(frame, LOWER_LASER, UPPER_LASER)
+        max_red_loc = get_color_location(frame, LOWER_RED, UPPER_RED)
+        max_blue_loc = get_color_location(frame, LOWER_BLUE, UPPER_BLUE)
+        max_green_loc = get_color_location(frame, LOWER_GREEN, UPPER_GREEN)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        # Visualize detected color points
+        cv2.circle(frame, max_laser_loc, 20, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.circle(frame, max_red_loc, 20, (0, 0, 255), 2, cv2.LINE_AA)
+        cv2.circle(frame, max_blue_loc, 20, (255, 0, 0), 2, cv2.LINE_AA)
+        cv2.circle(frame, max_green_loc, 20, (0, 255, 0), 2, cv2.LINE_AA)
 
-camera.stop()
-cv2.destroyAllWindows()
+        # Calibrate and move the cursor
+        calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc)
+
+        # Display the frame with annotations
+        cv2.imshow('Laser Tracker', frame)
+
+        # Exit condition: Press 'q' to quit
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release resources
+    CAMERA.stop()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    t1 = threading.Thread(target=main)
+    t1.start()
+    t1.join()
+ 
