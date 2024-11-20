@@ -35,10 +35,6 @@ sudo raspi-config
 ```
 And change the displaying method.
 
-#### Why using HTML? Wouldn't it be better to use INSERT_GUI_FRAMEWORK_HERE
-
-Ask our teamlead.
-
 
 
 
