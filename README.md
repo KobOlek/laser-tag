@@ -14,7 +14,7 @@ sudo apt update && sudo apt full-upgrade
 For better experience, hide the taskbar and make it as small as possible.
 To install all dependencies:
 ```bash
-  pip install -r requirements 
+  pip install -r requirements.txt
 ```
 
 
