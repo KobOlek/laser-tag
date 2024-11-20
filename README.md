@@ -1,7 +1,7 @@
 
 # LaserTag-α
 
-Software realisation of LaserTag-α, made with Python and CV2. Requires Camera Modul and a laser pointer.
+Software realisation of LaserTag-α, made with Python and CV2. Requires Camera Module and a laser pointer.
 
 
 
