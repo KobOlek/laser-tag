@@ -85,7 +85,6 @@ def main():
             break
 
     # Release resources
-    CAMERA.stop()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
