@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 :root{
-    --circle-size: 30px;
+    --circle-size: 35px;
     --target-width: 130px;
     --target-height: 230px;
 }
@@ -17,13 +17,15 @@
     align-items: flex-start;
     justify-content: flex-start;
     overflow: hidden;
-    cursor: none;
+    cursor: url("../img/cursor.png"), auto;
+    
 }
 .coordinateCircle{
     position: absolute;
     width: var(--circle-size);
     aspect-ratio: 1 / 1;
 }
+
 .coordinateCircle:nth-child(1){
     background-color: rgb(255, 0, 0);
     top: 0;
