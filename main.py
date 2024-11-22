@@ -5,6 +5,10 @@ import numpy as np
 from picamera2 import Picamera2
 from screeninfo import get_monitors
 from util import get_limits
+import socket
+import pickle
+import struct
+
 # Constants for screen size and camera configuration
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
 CAMERA = Picamera2()
@@ -28,6 +32,15 @@ LOWER_GREEN, UPPER_GREEN = get_limits([0, 255, 0][::-1])
 
 # Calibration variables
 field_width, field_height = 0, 0  # Will be calculated dynamically during video capture
+
+# Create a socket server
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind(('192.16.1.8', 9999))  # Replace with the server's IP address
+server_socket.listen(10)
+
+# Accept a client connection
+client_socket, client_address = server_socket.accept()
+print(f"[*] Accepted connection from {client_address}")
 
 def calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc):
     """Calibrate and move the cursor based on color locations."""
@@ -76,6 +89,12 @@ def main():
 
         # Calibrate and move the cursor
         calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc)
+
+        serialized_frame = pickle.dumps(frame)
+
+        # Pack the data size and frame data
+        message_size = struct.pack("L", len(serialized_frame))
+        client_socket.sendall(message_size + serialized_frame)
 
         # Display the frame with annotations
         cv2.imshow('Laser Tracker', frame)
