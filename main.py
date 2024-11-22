@@ -33,14 +33,12 @@ LOWER_GREEN, UPPER_GREEN = get_limits([0, 255, 0][::-1])
 # Calibration variables
 field_width, field_height = 0, 0  # Will be calculated dynamically during video capture
 
-# Create a socket server
+# Socket setup for client-server communication
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(('192.16.1.8', 9999))  # Replace with the server's IP address
+server_socket.bind(('192.16.1.168', 9999))  # Adjust IP as necessary
 server_socket.listen(10)
 
-# Accept a client connection
-client_socket, client_address = server_socket.accept()
-print(f"[*] Accepted connection from {client_address}")
+
 
 def calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc):
     """Calibrate and move the cursor based on color locations."""
@@ -65,6 +63,26 @@ def calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_gree
             cursor_y = red_y * height_k
             mouse.move(int(cursor_x), int(cursor_y))
 
+def send_frame_to_client(frame):
+    client_socket, client_address = server_socket.accept()
+    print(f"[*] Accepted connection from {client_address}")
+    """
+    Serialize and send the frame to the client.
+    """
+    serialized_frame = pickle.dumps(frame)
+    message_size = struct.pack("L", len(serialized_frame))
+    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    try:
+        if client_socket.fileno() == -1:
+            print("Client disconnected")
+        client_socket.sendall(message_size + serialized_frame)
+    except BrokenPipeError:
+        print("Broken Pipe Error: The client has disconnected.")
+    except Exception as e:
+        print(f"Error while sending data: {e}")
+
+
+
 # Main loop to capture and process video frames
 def main():
     """Main function to capture frames and track laser pointer."""
@@ -87,19 +105,16 @@ def main():
         cv2.circle(frame, max_blue_loc, 20, (255, 0, 0), 2, cv2.LINE_AA)
         cv2.circle(frame, max_green_loc, 20, (0, 255, 0), 2, cv2.LINE_AA)
 
-        # Calibrate and move the cursor
+        # Calibrate and move the cursor based on detected locations
         calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc)
 
-        serialized_frame = pickle.dumps(frame)
-
-        # Pack the data size and frame data
-        message_size = struct.pack("L", len(serialized_frame))
-        client_socket.sendall(message_size + serialized_frame)
+        # Send frame to the client
+        send_frame_to_client(frame)
 
         # Display the frame with annotations
         cv2.imshow('Laser Tracker', frame)
 
-        # Exit condition: Press 'q' to quit
+        # Exit if 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
