@@ -2,6 +2,11 @@ const gameZone = document.querySelector('.gameZone');
 const enemyDiv = '<div class="enemyTarget" id="enemyTarget" onmouseover="killEnemies()"></div>';
 let enemy = document.getElementById('enemyTarget');
 const hoverSound = document.getElementById('hoverSound');
+const scorePlace = document.getElementById('score');
+
+let score = 0
+scorePlace.textContent = 'Score:' + score;
+
 function spawnEnemies(){
     if(!gameZone.contains(enemy)){
         gameZone.innerHTML += enemyDiv;
@@ -18,4 +23,6 @@ function killEnemies(){
     gameZone.innerHTML = '';
     spawnEnemies();
     hoverSound.play();
+    score+=50;
+    scorePlace.textContent = 'Score:' + score;
 };
