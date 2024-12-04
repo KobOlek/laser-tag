@@ -1,3 +1,4 @@
+![Laser-Tag Alpha](https://i.imgur.com/AfN4zLe.png)
 
 # LaserTag-α 🐍
 
