@@ -1,9 +1,13 @@
+#!/home/alpha/Documents/laser-tag/.venv/bin/ python3
 import cv2
 import pyautogui
 import mouse
 import numpy as np
 from picamera2 import Picamera2
 from util import get_limits
+import tkinter as tk
+import threading
+import queue
 
 # Constants for screen size and camera configuration
 SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
@@ -11,6 +15,13 @@ CAMERA = Picamera2()
 CONFIG = CAMERA.create_preview_configuration({'format': 'RGB888'})
 CAMERA.configure(CONFIG)
 CAMERA.start()
+
+# Tkinter window setup
+ROOT = tk.Tk()
+ROOT.overrideredirect(True)
+ROOT.geometry(f"500x300+{(SCREEN_WIDTH - 300) // 2}+{720}")
+ROOT.configure(bg='#3a3a3a')
+ROOT.attributes("-topmost", 1)
 
 # Color range definitions
 LOWER_LASER, UPPER_LASER = np.array([0, 0, 255]), np.array([255, 255, 255])
@@ -52,12 +63,12 @@ def calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_gree
         cursor_y = int(red_y * height_k)
         mouse.move(cursor_x, cursor_y)  # Move the mouse cursor to the calculated position
 
-def main():
+def main(queue):
     """Main loop to capture frames and track laser pointer."""
-    # Set up OpenCV window
+    # Set up OpenCV window but do not show it
     cv2.namedWindow('Laser Tracker', flags=cv2.WINDOW_GUI_NORMAL)
     cv2.setWindowProperty('Laser Tracker', cv2.WND_PROP_TOPMOST, 1)  # Keep the window on top
-    
+
     while True:
         frame = CAMERA.capture_array()  # Capture frame from the camera
         if frame is None:
@@ -78,13 +89,12 @@ def main():
 
         # Calibrate the system and move the cursor accordingly
         calibrate_and_move_cursor(max_laser_loc, max_red_loc, max_blue_loc, max_green_loc)
-
-        # Display the processed frame
-        cv2.imshow('Laser Tracker', frame)
-
         # Center the window on the screen (excluding the title bar height)
         window_title_bar_height = 750  # Approximate height of window title bar (adjust if needed)
         cv2.moveWindow('Laser Tracker', (SCREEN_WIDTH - 300) // 2, window_title_bar_height)
+        # Send the frame for processing in Tkinter (avoid calling Tkinter from non-main thread)
+        if not queue.full():
+            queue.put(frame)
 
         # Exit condition: Press 'q' to quit the loop
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -93,5 +103,30 @@ def main():
     # Cleanup
     cv2.destroyAllWindows()
 
+def update_gui():
+    """Update the Tkinter GUI with the latest frame."""
+    if not frame_queue.empty():
+        frame = frame_queue.get()
+        # You can add any code here to display the frame in the Tkinter window
+        # For example, convert OpenCV frame to Tkinter-compatible image format and display
+        # This is just a placeholder to demonstrate how to update Tkinter safely.
+
+    # Call this method again to continually update the GUI
+    ROOT.after(10, update_gui)
+
+def run_opencv(queue):
+    """Run the OpenCV processing in a separate thread."""
+    main(queue)
+
 if __name__ == "__main__":
-    main()
+    # Create a queue to communicate between threads
+    frame_queue = queue.Queue(maxsize=1)  # Queue with size 1 to limit memory usage
+
+    # Run OpenCV in a separate thread
+    opencv_thread = threading.Thread(target=run_opencv, args=(frame_queue,))
+    opencv_thread.daemon = True  # Make the thread daemon so it exits when the program ends
+    opencv_thread.start()
+
+    # Start the Tkinter GUI in the main thread
+    ROOT.after(10, update_gui)  # Schedule the GUI update function
+    ROOT.mainloop()  # Start Tkinter event loop (main thread)
