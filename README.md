@@ -1,7 +1,7 @@
 
 # LaserTag-α
 
-Software realisation of LaserTag-α, made with Python and CV2. Requires Camera Modul and a laser pointer.
+Software realisation of LaserTag-α, made with Python and CV2. Requires Camera Module and a laser pointer.
 
 
 
@@ -14,7 +14,7 @@ sudo apt update && sudo apt full-upgrade
 For better experience, hide the taskbar and make it as small as possible.
 To install all dependencies:
 ```bash
-  pip install -r requirements 
+  pip install -r requirements.txt
 ```
 
 

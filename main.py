@@ -100,7 +100,6 @@ def main(queue):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # Cleanup
     cv2.destroyAllWindows()
 
 def update_gui():
