@@ -1,5 +1,9 @@
 opencv-python
 mouse
 numpy
-screeninfo
 pyautogui
+flask
+queue
+threading
+tkinter
+picamera2
