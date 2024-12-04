@@ -71,3 +71,9 @@
         transform: scale(1);
     }
 }
+#score{
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    font-size: 30px;
+}
