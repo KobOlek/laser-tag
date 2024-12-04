@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 :root{
-    --circle-size: 30px;
+    --circle-size: 35px;
     --target-width: 130px;
     --target-height: 230px;
 }
@@ -17,13 +17,15 @@
     align-items: flex-start;
     justify-content: flex-start;
     overflow: hidden;
-    cursor: none;
+    cursor: url("../img/cursor.png"), auto;
+    
 }
 .coordinateCircle{
     position: absolute;
     width: var(--circle-size);
     aspect-ratio: 1 / 1;
 }
+
 .coordinateCircle:nth-child(1){
     background-color: rgb(255, 0, 0);
     top: 0;
@@ -45,7 +47,7 @@
 
 .gameZone{
     width: calc(100% - var(--target-width));
-    height: calc(100% - var(--target-height));
+    height: calc(100% - var(--target-height) * 2);
 }
 .enemyTarget{
     cursor: none;
@@ -59,7 +61,7 @@
     position: relative;
     top: 0;
     left: 0;   
-    animation: targetAnim 2s ease-in-out;
+    animation: targetAnim 1s ease-in-out;
 }
 @keyframes targetAnim{
     0%{
