@@ -47,7 +47,7 @@
 
 .gameZone{
     width: calc(100% - var(--target-width));
-    height: calc(100% - var(--target-height));
+    height: calc(100% - var(--target-height) * 2);
 }
 .enemyTarget{
     cursor: none;
@@ -61,7 +61,7 @@
     position: relative;
     top: 0;
     left: 0;   
-    animation: targetAnim 2s ease-in-out;
+    animation: targetAnim 1s ease-in-out;
 }
 @keyframes targetAnim{
     0%{
